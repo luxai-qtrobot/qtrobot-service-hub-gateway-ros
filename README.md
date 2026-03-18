@@ -37,16 +37,7 @@ The gateway translates between the robot's internal ZMQ/magpie transport and the
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/luxai-qtrobot/qtrobot-service-hub-gateway-ros.git
-cd qtrobot-service-hub-gateway-ros
-```
-
-### 2. Create a Python virtual environment and install dependencies
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+git clone https://github.com/luxai-qtrobot/qtrobot-service-hub-gateway-ros.git ~/
 ```
 
 ### 3. Set up a ROS2 workspace and build the interfaces package
@@ -56,11 +47,22 @@ mkdir -p ~/ros2_ws/src
 cd ~/ros2_ws
 
 # Symlink only the interfaces package — the gateway does not need colcon
-ln -s /path/to/qtrobot-service-hub-gateway-ros/qtrobot_interfaces src/qtrobot_interfaces
+ln -s ~/qtrobot-service-hub-gateway-ros/qtrobot_interfaces src/qtrobot_interfaces
 
 source /opt/ros/jazzy/setup.bash
 colcon build --packages-select qtrobot_interfaces
 ```
+
+
+### 3. Create a Python virtual environment and install dependencies
+
+```bash
+cd ~/qtrobot-service-hub-gateway-ros
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
 
 ---
 
@@ -70,14 +72,14 @@ Every new terminal session requires the following setup:
 
 ```bash
 # 1. Activate the virtual environment
-source /path/to/qtrobot-service-hub-gateway-ros/.venv/bin/activate
+source ~/qtrobot-service-hub-gateway-ros/.venv/bin/activate
 
 # 2. Source ROS2 and the built interfaces
 source /opt/ros/jazzy/setup.bash
 source ~/ros2_ws/install/setup.bash
 
 # 3. Run the gateway from the repo root
-cd /path/to/qtrobot-service-hub-gateway-ros
+cd ~/qtrobot-service-hub-gateway-ros
 python -m qtrobot_ros2_gateway.main --ros-args -p robot_ip:=<ROBOT_IP> -r __ns:=/qtrobot
 ```
 
