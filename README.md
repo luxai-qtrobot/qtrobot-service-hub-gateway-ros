@@ -47,9 +47,6 @@ cd qtrobot-service-hub-gateway-ros
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-
-# ROS2 colcon build tools also need to be present in the venv
-pip install empy==3.3.4 catkin_pkg lark pyparsing numpy pyyaml
 ```
 
 ### 3. Set up a ROS2 workspace and build the interfaces package
@@ -81,25 +78,16 @@ source ~/ros2_ws/install/setup.bash
 
 # 3. Run the gateway from the repo root
 cd /path/to/qtrobot-service-hub-gateway-ros
-python -m qtrobot_ros2_gateway.main --ros-args -p robot_ip:=<ROBOT_IP>
+python -m qtrobot_ros2_gateway.main --ros-args -p robot_ip:=<ROBOT_IP> -r __ns:=/qtrobot
 ```
 
 ### Parameters
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `robot_ip` | string | `192.168.1.1` | IP address of the QTrobot |
+| `robot_ip` | string | `127.0.0.1` | IP address of the QTrobot service hub or service hub gateway|
 | `rpc_timeout` | float | `30.0` | Service call timeout in seconds |
 
-### Namespace (recommended)
-
-Pass `__ns` to prefix all services and topics with `/qtrobot/`:
-
-```bash
-python -m qtrobot_ros2_gateway.main --ros-args \
-    -p robot_ip:=192.168.3.237 \
-    -r __ns:=/qtrobot
-```
 
 All examples below assume the `/qtrobot` namespace.
 
@@ -245,7 +233,7 @@ ros2 service call /qtrobot/tts/engine/say/text qtrobot_interfaces/srv/TtsEngineS
 
 # Say with a specific language and pitch
 ros2 service call /qtrobot/tts/engine/say/text qtrobot_interfaces/srv/TtsEngineSayText \
-    "{text: 'Bonjour!', lang: 'fr-FR', pitch: 1.2}"
+    "{text: 'Bonjour', lang: 'fr-FR', pitch: 1.2}"
 
 # Cancel ongoing speech
 ros2 service call /qtrobot/tts/engine/cancel qtrobot_interfaces/srv/TtsEngineCancel "{}"
@@ -262,11 +250,11 @@ ros2 service call /qtrobot/face/emotion/list qtrobot_interfaces/srv/FaceEmotionL
 
 # Show the 'happy' emotion
 ros2 service call /qtrobot/face/emotion/show qtrobot_interfaces/srv/FaceEmotionShow \
-    "{emotion: 'happy'}"
+    "{emotion: 'QT/happy'}"
 
 # Show an emotion at half speed
 ros2 service call /qtrobot/face/emotion/show qtrobot_interfaces/srv/FaceEmotionShow \
-    "{emotion: 'excited', speed: 0.5}"
+    "{emotion: 'QT/happy', speed: 0.7}"
 
 # Stop the current emotion animation
 ros2 service call /qtrobot/face/emotion/stop qtrobot_interfaces/srv/FaceEmotionStop "{}"
@@ -280,7 +268,7 @@ ros2 service call /qtrobot/gesture/file/list qtrobot_interfaces/srv/GestureFileL
 
 # Play a gesture file
 ros2 service call /qtrobot/gesture/file/play qtrobot_interfaces/srv/GestureFilePlay \
-    "{gesture: 'wave'}"
+    "{gesture: 'QT/send_kiss'}"
 
 # Cancel current gesture
 ros2 service call /qtrobot/gesture/cancel qtrobot_interfaces/srv/GestureCancel "{}"
@@ -331,7 +319,7 @@ joints:
 ### Microphone Events (topic)
 
 ```bash
-# Monitor voice activity and direction of arrival
+# Monitor voice activity and direction of arrival when user speak
 ros2 topic echo /qtrobot/mic/int/event/stream
 ```
 

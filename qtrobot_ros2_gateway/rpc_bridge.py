@@ -96,6 +96,6 @@ class RpcBridge:
         for requester in self._requesters.values():
             try:
                 requester.close()
-            except Exception:
+            except BaseException:
                 pass
         self._requesters.clear()

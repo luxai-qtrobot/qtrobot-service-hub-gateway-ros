@@ -1,2 +1,9 @@
-pyyaml
 luxai-magpie[discovery,audio]
+
+# ROS2 tools
+pyyaml
+empy 
+catkin_pkg 
+lark 
+pyparsing 
+numpy

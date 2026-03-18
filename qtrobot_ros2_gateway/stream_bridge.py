@@ -174,10 +174,10 @@ class StreamBridge:
         for sub in self._subscribers:
             try:
                 sub.close()
-            except Exception:
+            except BaseException:
                 pass
         for pub in self._publishers:
             try:
                 pub.close()
-            except Exception:
+            except BaseException:
                 pass

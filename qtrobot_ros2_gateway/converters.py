@@ -30,6 +30,21 @@ def path_to_classname(api_path: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Type coercion helper
+# ---------------------------------------------------------------------------
+
+def _coerce(value, ros2_type: str):
+    """Coerce a value to the Python type expected by a ROS2 field."""
+    if 'float' in ros2_type:
+        return float(value)
+    if 'int' in ros2_type or 'uint' in ros2_type:
+        return int(value)
+    if ros2_type == 'bool':
+        return bool(value)
+    return value
+
+
+# ---------------------------------------------------------------------------
 # Dynamic ROS2 class loaders
 # ---------------------------------------------------------------------------
 
@@ -161,10 +176,26 @@ def fill_ros2_rpc_response(zmq_resp, ros_response, returns_def: dict) -> None:
             for item_dict in payload:
                 if isinstance(item_dict, dict):
                     item = item_class()
-                    for field_name in item_fields:
+                    for field_name, field_type in item_fields.items():
                         if field_name in item_dict:
                             try:
-                                setattr(item, field_name, item_dict[field_name])
+                                setattr(item, field_name,
+                                        _coerce(item_dict[field_name], field_type))
+                            except Exception:
+                                pass
+                    result.append(item)
+        elif isinstance(payload, dict):
+            # Dynamic-key dict: {name: {fields}} — key becomes the 'name' field
+            for item_key, item_data in payload.items():
+                if isinstance(item_data, dict):
+                    item = item_class()
+                    if hasattr(item, 'name'):
+                        item.name = item_key
+                    for field_name, field_type in item_fields.items():
+                        if field_name != 'name' and field_name in item_data:
+                            try:
+                                setattr(item, field_name,
+                                        _coerce(item_data[field_name], field_type))
                             except Exception:
                                 pass
                     result.append(item)
