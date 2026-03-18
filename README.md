@@ -37,7 +37,7 @@ The gateway translates between the robot's internal ZMQ/magpie transport and the
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/luxai/qtrobot-service-hub-gateway-ros.git
+git clone https://github.com/luxai-qtrobot/qtrobot-service-hub-gateway-ros.git
 cd qtrobot-service-hub-gateway-ros
 ```
 
