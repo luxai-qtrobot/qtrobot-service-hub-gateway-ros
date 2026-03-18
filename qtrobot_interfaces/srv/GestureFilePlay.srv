@@ -1,0 +1,5 @@
+string gesture
+float32 speed_factor 1.0
+---
+bool status
+bool result

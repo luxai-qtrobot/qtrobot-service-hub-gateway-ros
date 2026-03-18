@@ -1,0 +1,11 @@
+string text
+string engine ""
+string lang ""
+float32 pitch 0.0
+float32 rate 0.0
+string style ""
+string voice ""
+float32 volume 0.0
+---
+bool status
+bool result

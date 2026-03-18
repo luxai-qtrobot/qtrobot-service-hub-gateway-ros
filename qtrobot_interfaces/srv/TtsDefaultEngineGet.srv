@@ -1,0 +1,4 @@
+# no parameters
+---
+bool status
+string result ""

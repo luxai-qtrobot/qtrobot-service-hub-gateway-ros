@@ -1,0 +1,6 @@
+string l_eye
+string r_eye
+float32 duration 0.0
+---
+bool status
+bool result

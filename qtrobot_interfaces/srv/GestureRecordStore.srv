@@ -1,0 +1,4 @@
+string gesture
+---
+bool status
+bool result

@@ -1,0 +1,8 @@
+string motor
+float32 offset 0.0
+int32 overload_threshold 0
+bool store false
+int32 velocity_max 0
+---
+bool status
+bool result

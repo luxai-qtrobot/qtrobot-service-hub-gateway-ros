@@ -1,0 +1,5 @@
+string emotion
+float32 speed 0.0
+---
+bool status
+bool result

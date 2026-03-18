@@ -1,0 +1,5 @@
+string motor
+int32 velocity
+---
+bool status
+bool result

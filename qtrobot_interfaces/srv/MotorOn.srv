@@ -1,0 +1,4 @@
+string motor
+---
+bool status
+bool result

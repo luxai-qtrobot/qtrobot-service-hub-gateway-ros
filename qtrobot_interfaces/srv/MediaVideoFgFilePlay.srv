@@ -1,0 +1,6 @@
+string uri
+float32 speed 1.0
+bool with_audio false
+---
+bool status
+bool result

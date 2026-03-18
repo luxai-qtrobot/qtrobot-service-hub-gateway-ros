@@ -1,0 +1,8 @@
+string name
+string part
+float64 position_min
+float64 position_max
+float64 position_home
+float64 velocity_max
+float64 calibration_offset
+int32 overload_threshold

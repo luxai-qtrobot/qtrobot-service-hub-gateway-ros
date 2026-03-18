@@ -1,0 +1,7 @@
+string keyframes
+float32 rate_hz 100.0
+bool resample true
+float32 speed_factor 1.0
+---
+bool status
+bool result

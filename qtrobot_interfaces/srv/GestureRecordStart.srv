@@ -1,0 +1,10 @@
+string motors
+int32 delay_start_ms 0
+int32 keyframe_max_gap_us 100000
+float32 keyframe_pos_eps 0.75
+bool refine_keyframe true
+bool release_motors false
+int32 timeout_ms 60000
+---
+bool status
+string result ""

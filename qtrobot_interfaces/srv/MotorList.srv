@@ -1,0 +1,4 @@
+# no parameters
+---
+bool status
+qtrobot_interfaces/MotorInfo[] result

@@ -1,0 +1,5 @@
+string config
+string engine ""
+---
+bool status
+bool result

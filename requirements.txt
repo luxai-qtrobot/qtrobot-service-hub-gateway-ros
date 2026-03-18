@@ -1,0 +1,2 @@
+pyyaml
+luxai-magpie[discovery,audio]
