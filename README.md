@@ -1,7 +1,12 @@
-# QTrobot ROS2 Gateway
+# LuxAI QTrobot v3 ROS2 Gateway
 
-A ROS2 gateway that bridges the **LuxAI QTrobot v3** service hub to standard ROS2 services and topics.
-The gateway translates between the robot's internal ZMQ/magpie transport and the ROS2 interface layer, exposing all robot capabilities as ROS2 services and topics that any ROS2 node can consume.
+A ROS2 gateway that exposes the full **LuxAI QTrobot v3** API as standard ROS2 services and topics.
+Two independent gateways are provided:
+
+| Gateway | Module | Connects to |
+|---|---|---|
+| **QTrobot** | `gateway.qtrobot_ros2` | qtrobot-service-hub (robot API) |
+| **RealSense** | `gateway.realsense_ros2` | qtrobot-realsense-driver (camera/IMU) |
 
 ---
 
@@ -12,13 +17,16 @@ The gateway translates between the robot's internal ZMQ/magpie transport and the
        │
   ROS2 services / topics  (qtrobot_interfaces)
        │
- qtrobot_ros2_gateway     (this repo)
+ gateway/                 (this repo — plain Python, no colcon build)
+   ├── core/              shared bridge logic
+   ├── qtrobot_ros2/      QTrobot gateway
+   └── realsense_ros2/    RealSense gateway
        │  ZMQ / magpie
- QTrobot service hub      (running on the robot)
+ Robot backends           (running on the robot)
 ```
 
-- **`qtrobot_interfaces`** — ROS2 message and service definitions (built via colcon).
-- **`qtrobot_ros2_gateway`** — Plain Python package that runs as a ROS2 node; no colcon build required.
+- **`qtrobot_interfaces`** — ROS2 message and service definitions for both gateways (built once via colcon).
+- **`gateway/`** — Plain Python package; no colcon build required, run directly with `python -m`.
 
 ---
 
@@ -28,7 +36,7 @@ The gateway translates between the robot's internal ZMQ/magpie transport and the
 |---|---|
 | ROS2 | Jazzy |
 | Python | 3.12 |
-| Network access to QTrobot | TCP ports 505xx |
+| Network access to QTrobot | TCP ports 505xx / 507xx |
 
 ---
 
@@ -37,10 +45,10 @@ The gateway translates between the robot's internal ZMQ/magpie transport and the
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/luxai-qtrobot/qtrobot-service-hub-gateway-ros.git ~/
+git clone https://github.com/luxai-qtrobot/qtrobot-service-hub-gateway-ros.git
 ```
 
-### 3. Set up a ROS2 workspace and build the interfaces package
+### 2. Set up a ROS2 workspace and build the interfaces package
 
 ```bash
 mkdir -p ~/ros2_ws/src
@@ -53,7 +61,6 @@ source /opt/ros/jazzy/setup.bash
 colcon build --packages-select qtrobot_interfaces
 ```
 
-
 ### 3. Create a Python virtual environment and install dependencies
 
 ```bash
@@ -63,50 +70,55 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-
 ---
 
-## Running the Gateway
+## Running the Gateways
 
 Every new terminal session requires the following setup:
 
 ```bash
-# 1. Activate the virtual environment
 source ~/qtrobot-service-hub-gateway-ros/.venv/bin/activate
-
-# 2. Source ROS2 and the built interfaces
 source /opt/ros/jazzy/setup.bash
 source ~/ros2_ws/install/setup.bash
-
-# 3. Run the gateway from the repo root
 cd ~/qtrobot-service-hub-gateway-ros
-python -m qtrobot_ros2_gateway.main --ros-args -p robot_ip:=<ROBOT_IP> -r __ns:=/qtrobot
 ```
 
-### Parameters
+### QTrobot Gateway
+
+```bash
+python -m gateway.qtrobot_ros2 --ros-args -p robot_ip:=<ROBOT_IP> -r __ns:=/qtrobot
+```
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `robot_ip` | string | `127.0.0.1` | IP address of the QTrobot service hub or service hub gateway|
+| `robot_ip` | string | `127.0.0.1` | IP address of the QTrobot service hub |
 | `rpc_timeout` | float | `30.0` | Service call timeout in seconds |
 
+### RealSense Gateway
 
-All examples below assume the `/qtrobot` namespace.
+```bash
+python -m gateway.realsense_ros2 --ros-args -p realsense_ip:=<ROBOT_IP> -r __ns:=/qtrobot
+```
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `realsense_ip` | string | `127.0.0.1` | IP address of the RealSense driver host |
+| `rpc_timeout` | float | `30.0` | Service call timeout in seconds |
 
 ---
 
-## ROS2 Services
+## QTrobot — ROS2 Services
 
-All robot capabilities are exposed as ROS2 services. The service name mirrors the robot API path.
+All service names use the `/qtrobot/` namespace prefix.
 
 ### Face
 
 | Service | Description | Key Parameters |
 |---|---|---|
 | `/qtrobot/face/emotion/list` | List available emotion names | — |
-| `/qtrobot/face/emotion/show` | Display an emotion | `emotion` (string, required), `speed` (float, optional) |
+| `/qtrobot/face/emotion/show` | Display an emotion | `emotion` (string, required), `speed` (float) |
 | `/qtrobot/face/emotion/stop` | Stop current emotion animation | — |
-| `/qtrobot/face/look` | Move eye gaze | `l_eye`, `r_eye` (JSON list, required), `duration` (float) |
+| `/qtrobot/face/look` | Move eye gaze | `l_eye`, `r_eye` (JSON list), `duration` (float) |
 
 ### Text-to-Speech
 
@@ -121,7 +133,7 @@ All robot capabilities are exposed as ROS2 services. The service name mirrors th
 | `/qtrobot/tts/default_engine/get` | Get current default engine | — |
 | `/qtrobot/tts/default_engine/set` | Set default engine | `engine` (required) |
 | `/qtrobot/tts/engine/configure/get` | Get engine configuration | `engine` (optional) |
-| `/qtrobot/tts/engine/configure/set` | Set engine configuration | `config` (JSON dict, required), `engine` (optional) |
+| `/qtrobot/tts/engine/configure/set` | Set engine configuration | `config` (JSON dict), `engine` (optional) |
 | `/qtrobot/tts/engine/supports/ssml` | Check SSML support | `engine` (optional) |
 
 ### Gesture
@@ -130,9 +142,9 @@ All robot capabilities are exposed as ROS2 services. The service name mirrors th
 |---|---|---|
 | `/qtrobot/gesture/file/list` | List available gesture files | — |
 | `/qtrobot/gesture/file/play` | Play a gesture file | `gesture` (required), `speed_factor` (float) |
-| `/qtrobot/gesture/play` | Play a keyframe trajectory | `keyframes` (JSON dict, required), `rate_hz`, `speed_factor`, `resample` |
+| `/qtrobot/gesture/play` | Play a keyframe trajectory | `keyframes` (JSON dict), `rate_hz`, `speed_factor`, `resample` |
 | `/qtrobot/gesture/cancel` | Cancel current gesture | — |
-| `/qtrobot/gesture/record/start` | Start gesture recording | `motors` (JSON list, required), `timeout_ms`, `release_motors`, ... |
+| `/qtrobot/gesture/record/start` | Start gesture recording | `motors` (JSON list), `timeout_ms`, `release_motors`, ... |
 | `/qtrobot/gesture/record/stop` | Stop gesture recording | — |
 | `/qtrobot/gesture/record/store` | Save recorded gesture to file | `gesture` (required) |
 
@@ -193,17 +205,17 @@ All robot capabilities are exposed as ROS2 services. The service name mirrors th
 
 ---
 
-## ROS2 Topics
+## QTrobot — ROS2 Topics
 
 ### Published by the Gateway (robot → ROS2)
 
 | Topic | Message Type | Rate | Description |
 |---|---|---|---|
 | `/qtrobot/motor/joints/state/stream` | `MotorJointsStateFrame` | 10 Hz | Per-joint position (deg), velocity (deg/s), effort (Nm), voltage (V), temperature (°C) |
-| `/qtrobot/motor/joints/error/stream` | `MotorJointsErrorFrame` | on change | Per-joint error flags: overload, voltage limit, temperature limit, sensor failure |
-| `/qtrobot/gesture/progress/stream` | `GestureProgressFrame` | streaming | Gesture playback progress percentage (0–100) and elapsed time in microseconds |
-| `/qtrobot/mic/int/event/stream` | `MicEventFrame` | streaming | Voice activity (`activity: bool`) and direction of arrival (`direction`: 0–359°) |
-| `/qtrobot/mic/int/audio/ch0/stream` | `AudioFrameRaw` | streaming | Internal mic — channel 0 (beamformed / processed) |
+| `/qtrobot/motor/joints/error/stream` | `MotorJointsErrorFrame` | on change | Per-joint error flags: overload, voltage, temperature, sensor |
+| `/qtrobot/gesture/progress/stream` | `GestureProgressFrame` | streaming | Gesture playback progress (0–100%) and elapsed time (µs) |
+| `/qtrobot/mic/int/event/stream` | `MicEventFrame` | streaming | Voice activity (`activity: bool`) and direction of arrival (0–359°) |
+| `/qtrobot/mic/int/audio/ch0/stream` | `AudioFrameRaw` | streaming | Internal mic — channel 0 (beamformed) |
 | `/qtrobot/mic/int/audio/ch1/stream` | `AudioFrameRaw` | streaming | Internal mic — channel 1 (raw) |
 | `/qtrobot/mic/int/audio/ch2/stream` | `AudioFrameRaw` | streaming | Internal mic — channel 2 (raw) |
 | `/qtrobot/mic/int/audio/ch3/stream` | `AudioFrameRaw` | streaming | Internal mic — channel 3 (raw) |
@@ -214,19 +226,42 @@ All robot capabilities are exposed as ROS2 services. The service name mirrors th
 
 | Topic | Message Type | Description |
 |---|---|---|
-| `/qtrobot/motor/joints/command/stream` | `MotorJointsCommandFrame` | Send joint position/velocity commands to the robot |
-| `/qtrobot/media/audio/fg/stream` | `AudioFrameRaw` | Stream raw PCM audio to the foreground audio player |
-| `/qtrobot/media/audio/bg/stream` | `AudioFrameRaw` | Stream raw PCM audio to the background audio player |
-| `/qtrobot/media/video/fg/stream` | `ImageFrameRaw` | Stream raw image frames to the foreground display |
-| `/qtrobot/media/video/bg/stream` | `ImageFrameRaw` | Stream raw image frames to the background display |
+| `/qtrobot/motor/joints/command/stream` | `MotorJointsCommandFrame` | Send joint position/velocity commands |
+| `/qtrobot/media/audio/fg/stream` | `AudioFrameRaw` | Stream PCM audio to foreground player |
+| `/qtrobot/media/audio/bg/stream` | `AudioFrameRaw` | Stream PCM audio to background player |
+| `/qtrobot/media/video/fg/stream` | `ImageFrameRaw` | Stream image frames to foreground display |
+| `/qtrobot/media/video/bg/stream` | `ImageFrameRaw` | Stream image frames to background display |
 
-All message types are in the `qtrobot_interfaces/msg` package.
+---
+
+## RealSense — ROS2 Services
+
+| Service | Type | Description |
+|---|---|---|
+| `/qtrobot/camera/color/intrinsics` | `CameraColorIntrinsics` | RGB camera intrinsics — `result.width`, `result.fx`, `result.fy`, `result.ppx`, `result.ppy`, `result.coef[]`, `result.model` |
+| `/qtrobot/camera/depth/intrinsics` | `CameraDepthIntrinsics` | Depth camera intrinsics — same fields as color |
+| `/qtrobot/camera/depth/scale` | `CameraDepthScale` | Depth scale factor — multiply depth pixel value by this to get meters |
+
+---
+
+## RealSense — ROS2 Topics
+
+All topics are published by the gateway (camera → ROS2).
+
+| Topic | Message Type | Rate | Description |
+|---|---|---|---|
+| `/qtrobot/camera/color/image` | `ImageFrameRaw` | 15 Hz | RGB color image (default 848×480) |
+| `/qtrobot/camera/depth/image` | `ImageFrameRaw` | 15 Hz | Raw depth image (Z16, in depth units) |
+| `/qtrobot/camera/depth/aligned/image` | `ImageFrameRaw` | 15 Hz | Depth aligned to color frame |
+| `/qtrobot/camera/depth/color/image` | `ImageFrameRaw` | 15 Hz | Colorized depth for visualization |
+| `/qtrobot/camera/gyro` | `ImuFrame` | 200 Hz | Gyroscope — x, y, z in rad/s (requires `use-gyro` on driver) |
+| `/qtrobot/camera/acceleration` | `ImuFrame` | 63 Hz | Accelerometer — x, y, z in m/s² (requires `use-accel` on driver) |
 
 ---
 
 ## Usage Examples
 
-### Text-to-Speech
+### QTrobot — Text-to-Speech
 
 ```bash
 # Say a sentence
@@ -244,7 +279,7 @@ ros2 service call /qtrobot/tts/engine/cancel qtrobot_interfaces/srv/TtsEngineCan
 ros2 service call /qtrobot/tts/engines/list qtrobot_interfaces/srv/TtsEnginesList "{}"
 ```
 
-### Face Emotions
+### QTrobot — Face Emotions
 
 ```bash
 # List all available emotions
@@ -254,7 +289,7 @@ ros2 service call /qtrobot/face/emotion/list qtrobot_interfaces/srv/FaceEmotionL
 ros2 service call /qtrobot/face/emotion/show qtrobot_interfaces/srv/FaceEmotionShow \
     "{emotion: 'QT/happy'}"
 
-# Show an emotion at half speed
+# Show emotion at reduced speed
 ros2 service call /qtrobot/face/emotion/show qtrobot_interfaces/srv/FaceEmotionShow \
     "{emotion: 'QT/happy', speed: 0.7}"
 
@@ -262,7 +297,7 @@ ros2 service call /qtrobot/face/emotion/show qtrobot_interfaces/srv/FaceEmotionS
 ros2 service call /qtrobot/face/emotion/stop qtrobot_interfaces/srv/FaceEmotionStop "{}"
 ```
 
-### Gestures
+### QTrobot — Gestures
 
 ```bash
 # List available gesture files
@@ -276,13 +311,13 @@ ros2 service call /qtrobot/gesture/file/play qtrobot_interfaces/srv/GestureFileP
 ros2 service call /qtrobot/gesture/cancel qtrobot_interfaces/srv/GestureCancel "{}"
 ```
 
-### Motors
+### QTrobot — Motors
 
 ```bash
 # List all motors and their properties
 ros2 service call /qtrobot/motor/list qtrobot_interfaces/srv/MotorList "{}"
 
-# Enable torque on all motors and move to home position
+# Enable torque and move to home
 ros2 service call /qtrobot/motor/on/all qtrobot_interfaces/srv/MotorOnAll "{}"
 ros2 service call /qtrobot/motor/move/home/all qtrobot_interfaces/srv/MotorMoveHomeAll "{}"
 
@@ -294,14 +329,12 @@ ros2 service call /qtrobot/motor/velocity/set qtrobot_interfaces/srv/MotorVeloci
 ros2 service call /qtrobot/motor/off/all qtrobot_interfaces/srv/MotorOffAll "{}"
 ```
 
-### Motor Joint States (topic)
+### QTrobot — Motor Joint States (topic)
 
 ```bash
-# Monitor joint states at 10 Hz
 ros2 topic echo /qtrobot/motor/joints/state/stream
 ```
 
-Example output:
 ```yaml
 header:
   stamp: {sec: 1234567890, nanosec: 0}
@@ -318,14 +351,12 @@ joints:
     ...
 ```
 
-### Microphone Events (topic)
+### QTrobot — Microphone Events (topic)
 
 ```bash
-# Monitor voice activity and direction of arrival when user speak
 ros2 topic echo /qtrobot/mic/int/event/stream
 ```
 
-Example output:
 ```yaml
 header:
   stamp: {sec: 1234567890, nanosec: 0}
@@ -334,19 +365,54 @@ activity: true    # true = speech detected
 direction: 270    # direction of arrival in degrees (0–359)
 ```
 
-### Speaker Volume
+### QTrobot — Speaker Volume
 
 ```bash
-# Get current speaker volume
 ros2 service call /qtrobot/speaker/volume/get qtrobot_interfaces/srv/SpeakerVolumeGet "{}"
-
-# Set speaker volume to 80%
-ros2 service call /qtrobot/speaker/volume/set qtrobot_interfaces/srv/SpeakerVolumeSet \
-    "{value: 0.8}"
-
-# Mute and unmute
+ros2 service call /qtrobot/speaker/volume/set qtrobot_interfaces/srv/SpeakerVolumeSet "{value: 0.8}"
 ros2 service call /qtrobot/speaker/volume/mute   qtrobot_interfaces/srv/SpeakerVolumeMute "{}"
 ros2 service call /qtrobot/speaker/volume/unmute qtrobot_interfaces/srv/SpeakerVolumeUnmute "{}"
+```
+
+### RealSense — Camera Intrinsics
+
+```bash
+# Get RGB camera intrinsics (returns JSON string)
+ros2 service call /qtrobot/camera/color/intrinsics qtrobot_interfaces/srv/CameraColorIntrinsics "{}"
+
+# Get depth scale (meters per depth unit)
+ros2 service call /qtrobot/camera/depth/scale qtrobot_interfaces/srv/CameraDepthScale "{}"
+```
+
+### RealSense — Camera Images (topics)
+
+```bash
+# Check RGB image publish rate
+ros2 topic hz /qtrobot/camera/color/image
+
+# Echo image metadata (encoding, width, height)
+ros2 topic echo /qtrobot/camera/color/image --field encoding
+ros2 topic echo /qtrobot/camera/color/image --field width
+ros2 topic echo /qtrobot/camera/color/image --field height
+
+# Aligned depth image
+ros2 topic echo /qtrobot/camera/depth/aligned/image --field encoding
+```
+
+### RealSense — IMU (topics, if enabled on driver)
+
+```bash
+ros2 topic echo /qtrobot/camera/gyro
+ros2 topic echo /qtrobot/camera/acceleration
+```
+
+```yaml
+header:
+  stamp: {sec: 1234567890, nanosec: 0}
+  frame_id: ''
+x: 0.001    # rad/s (gyro) or m/s² (accel)
+y: -0.003
+z: 9.806
 ```
 
 ---
@@ -354,18 +420,19 @@ ros2 service call /qtrobot/speaker/volume/unmute qtrobot_interfaces/srv/SpeakerV
 ## Introspection
 
 ```bash
-# List all QTrobot services
+# List all active services and topics
 ros2 service list | grep qtrobot
+ros2 topic list
 
-# List all QTrobot topics
-ros2 topic list | grep qtrobot
-
-# Check topic publish rate
+# Check publish rate
 ros2 topic hz /qtrobot/motor/joints/state/stream
+ros2 topic hz /qtrobot/camera/color/image
 
-# Inspect a message or service interface
+# Inspect message / service definitions
 ros2 interface show qtrobot_interfaces/msg/MotorJointsStateFrame
+ros2 interface show qtrobot_interfaces/msg/ImuFrame
 ros2 interface show qtrobot_interfaces/srv/TtsEngineSayText
+ros2 interface show qtrobot_interfaces/srv/CameraDepthScale
 ```
 
 ---

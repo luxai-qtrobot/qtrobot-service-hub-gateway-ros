@@ -12,8 +12,10 @@ find_package(std_msgs REQUIRED)
 
 set(msg_files
   "msg/AudioFrameRaw.msg"
+  "msg/CameraIntrinsics.msg"
   "msg/GestureProgressFrame.msg"
   "msg/ImageFrameRaw.msg"
+  "msg/ImuFrame.msg"
   "msg/MicEventFrame.msg"
   "msg/MotorInfo.msg"
   "msg/MotorJointCommand.msg"
@@ -97,6 +99,9 @@ set(srv_files
   "srv/TtsEngineSupportsSsml.srv"
   "srv/TtsEngineVoicesGet.srv"
   "srv/TtsEnginesList.srv"
+  "srv/CameraColorIntrinsics.srv"
+  "srv/CameraDepthIntrinsics.srv"
+  "srv/CameraDepthScale.srv"
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}
