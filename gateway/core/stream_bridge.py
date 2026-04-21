@@ -2,10 +2,10 @@
 Stream bridge: bridges ZMQ PUB/SUB streams to/from ROS2 topics.
 
   "out" streams (hub → gateway):
-    ZMQSubscriber.read() → dict → ROS2 publisher.publish(msg)
+    ZmqStreamReader.read() → dict → ROS2 publisher.publish(msg)
 
   "in" streams (gateway → hub):
-    ROS2 subscriber callback → dict → ZMQPublisher.write(dict, topic)
+    ROS2 subscriber callback → dict → ZmqStreamWriter.write(dict, topic)
 
 Topic naming convention:
   The api_path (e.g. /gesture/progress/stream:o) is used as the ZMQ
@@ -15,8 +15,8 @@ Topic naming convention:
 
 import threading
 
-from luxai.magpie.transport.zmq.zmq_subscriber import ZMQSubscriber
-from luxai.magpie.transport.zmq.zmq_publisher import ZMQPublisher
+from luxai.magpie.transport.zmq.zmq_stream_reader import ZmqStreamReader
+from luxai.magpie.transport.zmq.zmq_stream_writer import ZmqStreamWriter
 
 from .converters import get_msg_class, dict_to_ros2_msg, ros2_msg_to_dict
 
@@ -35,8 +35,8 @@ class StreamBridge:
                  interfaces_pkg: str = 'qtrobot_interfaces'):
         self._node = node
         self._interfaces_pkg = interfaces_pkg
-        self._subscribers: list[ZMQSubscriber] = []
-        self._publishers: list[ZMQPublisher] = []
+        self._subscribers: list[ZmqStreamReader] = []
+        self._publishers: list[ZmqStreamWriter] = []
         self._threads: list[threading.Thread] = []
         self._running = threading.Event()
         self._running.set()
@@ -78,14 +78,14 @@ class StreamBridge:
                                delivery, queue_size)
 
     # ------------------------------------------------------------------
-    # "out": ZMQ subscriber → ROS2 publisher
+    # "out": ZMQ reader → ROS2 publisher
     # ------------------------------------------------------------------
 
     def _setup_out(self, api_path, endpoint, ros_topic, msg_class,
                    frame_type, frame_fields, sub_msgs_def, delivery, queue_size):
         ros2_pub = self._node.create_publisher(msg_class, ros_topic, 10)
 
-        sub = ZMQSubscriber(
+        sub = ZmqStreamReader(
             endpoint=endpoint,
             topic=api_path,
             queue_size=max(queue_size, 1),
@@ -139,12 +139,12 @@ class StreamBridge:
         )
 
     # ------------------------------------------------------------------
-    # "in": ROS2 subscriber → ZMQ publisher
+    # "in": ROS2 subscriber → ZMQ writer
     # ------------------------------------------------------------------
 
     def _setup_in(self, api_path, endpoint, ros_topic, msg_class,
                   frame_type, frame_fields, sub_msgs_def, delivery, queue_size):
-        pub = ZMQPublisher(
+        pub = ZmqStreamWriter(
             endpoint=endpoint,
             queue_size=max(queue_size, 1),
             bind=False,
